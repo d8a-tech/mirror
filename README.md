@@ -34,6 +34,7 @@ A Skopeo-based solution that automatically mirrors Docker Hub images to GitHub C
 - **`.github/workflows/mirror-images.yml`** - GitHub Actions workflow
 - **`scripts/mirror.sh`** - Local execution script
 - **`SETUP.md`** - Detailed setup and usage guide
+- **`TROUBLESHOOTING.md`** - Common issues and solutions
 
 ## 🔧 Configuration Example
 
@@ -59,6 +60,14 @@ settings:
   retry_delay: 30
 ```
 
+## 🔑 Secrets Setup
+
+**No custom secrets required!** The workflow uses GitHub's built-in `GITHUB_TOKEN` which automatically has the necessary permissions for GHCR.
+
+Just ensure your repository has:
+- Actions enabled
+- Workflow permissions set to "Read and write permissions" (in Settings → Actions → General)
+
 ## 🏃‍♂️ Usage
 
 ### Automatic (Recommended)
@@ -76,6 +85,7 @@ sudo apt-get install skopeo
 ## 📚 Documentation
 
 - **[SETUP.md](SETUP.md)** - Complete setup and usage guide
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Common issues and solutions
 - **[GitHub Container Registry Migration Guide](https://docs.github.com/en/packages/working-with-a-github-packages-registry/migrating-to-the-container-registry-from-the-docker-registry)**
 
 ## 🎯 Why Use This?
@@ -91,6 +101,15 @@ sudo apt-get install skopeo
 - Check the **Actions** tab for workflow runs
 - View mirrored packages in your **Packages** tab
 - Monitor logs for detailed mirror status
+
+## 🚨 Troubleshooting
+
+If you encounter issues:
+
+1. **Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md)** for common solutions
+2. **Verify repository permissions** (Actions enabled, workflow permissions)
+3. **Test with minimal configuration** (single image)
+4. **Check workflow logs** for specific error messages
 
 ## 🤝 Contributing
 
