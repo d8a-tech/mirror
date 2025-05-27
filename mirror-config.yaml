@@ -1,0 +1,21 @@
+mirrors:
+  # Example configurations for different types of images
+  - source: "docker.io/library/nginx"
+    destination: "ghcr.io/{{GITHUB_REPOSITORY_OWNER}}/nginx"
+    tags:
+      - "latest"
+
+# Global settings
+settings:
+  # Whether to make mirrored images public (true) or private (false)
+  public: true
+  
+  # Whether to preserve original labels and annotations
+  preserve_metadata: true
+  
+  # Retry configuration
+  retry_attempts: 3
+  retry_delay: 30  # seconds
+  
+  # Parallel processing
+  max_concurrent_mirrors: 5 

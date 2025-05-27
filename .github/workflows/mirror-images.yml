@@ -1,0 +1,197 @@
+name: Mirror Docker Images to GHCR
+
+on:
+  push:
+    branches:
+    paths:
+      - 'mirror-config.yaml'
+      - '.github/workflows/mirror-images.yml'
+  workflow_dispatch:  # Allow manual triggering
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Skopeo
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y skopeo
+
+      - name: Install yq for YAML parsing
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Parse config and mirror images
+        run: |
+          #!/bin/bash
+          set -e
+          
+          CONFIG_FILE="mirror-config.yaml"
+          
+          # Check if config file exists
+          if [[ ! -f "$CONFIG_FILE" ]]; then
+            echo "❌ Configuration file $CONFIG_FILE not found!"
+            exit 1
+          fi
+          
+          echo "🔍 Parsing configuration file..."
+          
+          # Get global settings
+          RETRY_ATTEMPTS=$(yq '.settings.retry_attempts // 3' "$CONFIG_FILE")
+          RETRY_DELAY=$(yq '.settings.retry_delay // 30' "$CONFIG_FILE")
+          PUBLIC=$(yq '.settings.public // true' "$CONFIG_FILE")
+          
+          echo "📋 Global settings:"
+          echo "  - Retry attempts: $RETRY_ATTEMPTS"
+          echo "  - Retry delay: ${RETRY_DELAY}s"
+          echo "  - Public images: $PUBLIC"
+          echo ""
+          
+          # Function to mirror a single image
+          mirror_image() {
+            local source="$1"
+            local destination="$2"
+            local tag="$3"
+            local attempt=1
+            
+            # Replace template variables
+            destination="${destination//\{\{GITHUB_REPOSITORY_OWNER\}\}/${{ github.repository_owner }}}"
+            
+            local source_full="${source}:${tag}"
+            local dest_full="${destination}:${tag}"
+            
+            echo "🔄 Mirroring: $source_full → $dest_full"
+            
+            while [[ $attempt -le $RETRY_ATTEMPTS ]]; do
+              if skopeo copy \
+                --dest-creds="${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
+                "docker://$source_full" \
+                "docker://$dest_full"; then
+                echo "✅ Successfully mirrored: $dest_full"
+                
+                # Set image visibility if specified
+                if [[ "$PUBLIC" == "true" ]]; then
+                  echo "🌐 Setting image as public..."
+                  # Note: This requires the gh CLI and appropriate permissions
+                  # gh api --method PATCH "/user/packages/container/$(basename $destination)/versions" \
+                  #   --field visibility=public || echo "⚠️  Could not set visibility (may require manual action)"
+                fi
+                
+                return 0
+              else
+                echo "❌ Attempt $attempt failed for $dest_full"
+                if [[ $attempt -lt $RETRY_ATTEMPTS ]]; then
+                  echo "⏳ Waiting ${RETRY_DELAY}s before retry..."
+                  sleep "$RETRY_DELAY"
+                fi
+                ((attempt++))
+              fi
+            done
+            
+            echo "💥 Failed to mirror $source_full after $RETRY_ATTEMPTS attempts"
+            return 1
+          }
+          
+          # Get number of mirror configurations
+          MIRROR_COUNT=$(yq '.mirrors | length' "$CONFIG_FILE")
+          echo "📦 Found $MIRROR_COUNT image configurations to process"
+          echo ""
+          
+          # Track success/failure
+          TOTAL_MIRRORS=0
+          SUCCESSFUL_MIRRORS=0
+          FAILED_MIRRORS=0
+          
+          # Process each mirror configuration
+          for i in $(seq 0 $((MIRROR_COUNT - 1))); do
+            echo "🔧 Processing configuration $((i + 1))/$MIRROR_COUNT"
+            
+            SOURCE=$(yq ".mirrors[$i].source" "$CONFIG_FILE")
+            DESTINATION=$(yq ".mirrors[$i].destination" "$CONFIG_FILE")
+            
+            echo "  Source: $SOURCE"
+            echo "  Destination: $DESTINATION"
+            
+            # Get tags for this mirror
+            TAG_COUNT=$(yq ".mirrors[$i].tags | length" "$CONFIG_FILE")
+            echo "  Tags to mirror: $TAG_COUNT"
+            
+            for j in $(seq 0 $((TAG_COUNT - 1))); do
+              TAG=$(yq ".mirrors[$i].tags[$j]" "$CONFIG_FILE")
+              echo "    - $TAG"
+              
+              ((TOTAL_MIRRORS++))
+              
+              if mirror_image "$SOURCE" "$DESTINATION" "$TAG"; then
+                ((SUCCESSFUL_MIRRORS++))
+              else
+                ((FAILED_MIRRORS++))
+              fi
+            done
+            
+            echo ""
+          done
+          
+          # Summary
+          echo "📊 Mirror Summary:"
+          echo "  - Total mirrors attempted: $TOTAL_MIRRORS"
+          echo "  - Successful: $SUCCESSFUL_MIRRORS"
+          echo "  - Failed: $FAILED_MIRRORS"
+          
+          if [[ $FAILED_MIRRORS -gt 0 ]]; then
+            echo "⚠️  Some mirrors failed. Check the logs above for details."
+            exit 1
+          else
+            echo "🎉 All mirrors completed successfully!"
+          fi
+
+      - name: Create mirror summary
+        if: always()
+        run: |
+          echo "## 🪞 Docker Image Mirror Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository:** ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Actor:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ -f "mirror-config.yaml" ]]; then
+            MIRROR_COUNT=$(yq '.mirrors | length' "mirror-config.yaml")
+            echo "**Configurations processed:** $MIRROR_COUNT" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📋 Mirrored Images" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            for i in $(seq 0 $((MIRROR_COUNT - 1))); do
+              SOURCE=$(yq ".mirrors[$i].source" "mirror-config.yaml")
+              DESTINATION=$(yq ".mirrors[$i].destination" "mirror-config.yaml")
+              DESTINATION="${DESTINATION//\{\{GITHUB_REPOSITORY_OWNER\}\}/${{ github.repository_owner }}}"
+              
+              echo "- **$SOURCE** → **$DESTINATION**" >> $GITHUB_STEP_SUMMARY
+              
+              TAG_COUNT=$(yq ".mirrors[$i].tags | length" "mirror-config.yaml")
+              for j in $(seq 0 $((TAG_COUNT - 1))); do
+                TAG=$(yq ".mirrors[$i].tags[$j]" "mirror-config.yaml")
+                echo "  - \`$TAG\`" >> $GITHUB_STEP_SUMMARY
+              done
+            done
+          fi 
