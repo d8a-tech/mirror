@@ -4,6 +4,10 @@ mirrors:
     destination: "ghcr.io/{{GITHUB_REPOSITORY_OWNER}}/bitnami/postgresql"
     tags:
       - "17.5.0-debian-12-r3"
+  - source: "docker.io/bitnami/redis"
+    destination: "ghcr.io/{{GITHUB_REPOSITORY_OWNER}}/bitnami/redis"
+    tags:
+      - "8.0.3-debian-12-r1"
   - source: "docker.io/bitnami/minio"
     destination: "ghcr.io/{{GITHUB_REPOSITORY_OWNER}}/bitnami/minio"
     tags:
