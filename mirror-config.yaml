@@ -8,6 +8,12 @@ mirrors:
     destination: "ghcr.io/{{GITHUB_REPOSITORY_OWNER}}/bitnami/redis"
     tags:
       - "8.0.3-debian-12-r1"
+
+  - source: "docker.io/bitnami/redis"
+    destination: "ghcr.io/{{GITHUB_REPOSITORY_OWNER}}/bitnami/redis-exporter"
+    tags:
+      - "1.74.0-debian-12-r2"
+      
   - source: "docker.io/bitnami/minio"
     destination: "ghcr.io/{{GITHUB_REPOSITORY_OWNER}}/bitnami/minio"
     tags:
@@ -20,6 +26,8 @@ mirrors:
     destination: "ghcr.io/{{GITHUB_REPOSITORY_OWNER}}/kong"
     tags:
       - "3.9"
+
+      
 
 
 # Global settings
