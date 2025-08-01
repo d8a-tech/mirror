@@ -9,7 +9,7 @@ mirrors:
     tags:
       - "8.0.3-debian-12-r1"
 
-  - source: "docker.io/bitnami/redis"
+  - source: "docker.io/bitnami/redis-exporter"
     destination: "ghcr.io/{{GITHUB_REPOSITORY_OWNER}}/bitnami/redis-exporter"
     tags:
       - "1.74.0-debian-12-r2"
