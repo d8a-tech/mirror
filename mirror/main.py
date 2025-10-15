@@ -284,6 +284,14 @@ def mirror_file(
                     registry_username,
                     registry_password,
                     mime_type
+                ) and push_file_to_registry(
+                    processed_path,
+                    destination,
+                    "latest",
+                    registry_owner,
+                    registry_username,
+                    registry_password,
+                    mime_type
                 ):
                     return True
                 else:
