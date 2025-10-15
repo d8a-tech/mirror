@@ -94,3 +94,9 @@ Thumbs.db
 # Local configuration overrides
 mirror-config.local.yaml
 config.local.* 
+
+# Pycache
+__pycache__/
+
+# Virtual environment
+.venv/

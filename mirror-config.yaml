@@ -1,23 +1,4 @@
-mirrors:
-  # Example configurations for different types of images
-  - source: "docker.io/bitnami/postgresql"
-    destination: "ghcr.io/{{GITHUB_REPOSITORY_OWNER}}/bitnami/postgresql"
-    tags:
-      - "17.5.0-debian-12-r3"
-  - source: "docker.io/bitnami/redis"
-    destination: "ghcr.io/{{GITHUB_REPOSITORY_OWNER}}/bitnami/redis"
-    tags:
-      - "8.0.3-debian-12-r1"
-
-  - source: "docker.io/bitnami/redis-exporter"
-    destination: "ghcr.io/{{GITHUB_REPOSITORY_OWNER}}/bitnami/redis-exporter"
-    tags:
-      - "1.74.0-debian-12-r2"
-      
-  - source: "docker.io/bitnami/minio"
-    destination: "ghcr.io/{{GITHUB_REPOSITORY_OWNER}}/bitnami/minio"
-    tags:
-      - "2024.10.29-debian-12-r0"
+docker:
   - source: "docker.io/kong/kubernetes-ingress-controller"
     destination: "ghcr.io/{{GITHUB_REPOSITORY_OWNER}}/kubernetes-ingress-controller"
     tags:
@@ -27,7 +8,14 @@ mirrors:
     tags:
       - "3.9"
 
-      
+files:
+  - source: https://download.db-ip.com/free/dbip-city-lite-2025-10.mmdb.gz
+    transforms: 
+     - type: "gunzip"
+    destination: ghcr.io/{{GITHUB_REPOSITORY_OWNER}}/dbip-city-lite
+    tags:
+      - "2025-10"
+    mime: application/vnd.dbip.database
 
 
 # Global settings
@@ -35,12 +23,7 @@ settings:
   # Whether to make mirrored images public (true) or private (false)
   public: true
   
-  # Whether to preserve original labels and annotations
-  preserve_metadata: true
   
   # Retry configuration
   retry_attempts: 3
-  retry_delay: 30  # seconds
-  
-  # Parallel processing
-  max_concurrent_mirrors: 5 
+  retry_delay: 1  # seconds
