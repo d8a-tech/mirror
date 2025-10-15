@@ -187,18 +187,19 @@ def oras_login(registry_username: str, registry_password: str) -> bool:
 def push_file_to_registry(
     file_path: Path,
     destination: str,
-    tag: str,
+    tags: List[str],
     registry_owner: str,
     registry_username: str,
     registry_password: str,
     mime_type: Optional[str] = None
 ) -> bool:
-    """Push a file to OCI registry using oras."""
+    """Push a file to OCI registry using oras with multiple tags."""
     # Replace template variables
     destination = destination.replace("{{GITHUB_REPOSITORY_OWNER}}", registry_owner)
-    dest_full = f"{destination}:{tag}"
+    tags_str = ",".join(tags)
+    dest_full = f"{destination}:{tags_str}"
     
-    print(f"Pushing file to: {dest_full}")
+    print(f"Pushing file to: {destination} with tags: {tags_str}")
     
     try:
         cmd = [
@@ -248,7 +249,7 @@ def push_file_to_registry(
 def mirror_file(
     source: str,
     destination: str,
-    tag: str,
+    tags: List[str],
     transforms: List[Dict[str, Any]],
     registry_owner: str,
     registry_username: str,
@@ -257,7 +258,7 @@ def mirror_file(
     retry_attempts: int = 3,
     retry_delay: int = 1
 ) -> bool:
-    """Download, transform, and push a file to OCI registry."""
+    """Download, transform, and push a file to OCI registry with multiple tags."""
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir_path = Path(tmpdir)
         
@@ -275,19 +276,11 @@ def mirror_file(
                 if transforms:
                     processed_path = apply_transforms(download_path, transforms)
                 
-                # Push to registry
+                # Push to registry with all tags
                 if push_file_to_registry(
                     processed_path,
                     destination,
-                    tag,
-                    registry_owner,
-                    registry_username,
-                    registry_password,
-                    mime_type
-                ) and push_file_to_registry(
-                    processed_path,
-                    destination,
-                    "latest",
+                    tags,
                     registry_owner,
                     registry_username,
                     registry_password,
@@ -410,20 +403,21 @@ def main():
             
             for tag in tags:
                 print(f"    - {tag}")
-                
-                if not mirror_file(
-                    source,
-                    destination,
-                    tag,
-                    transforms,
-                    registry_owner,
-                    registry_username,
-                    registry_password,
-                    mime_type,
-                    retry_attempts,
-                    retry_delay
-                ):
-                    failed_mirrors += 1
+            
+            # Process all tags for this file configuration at once
+            if not mirror_file(
+                source,
+                destination,
+                tags,
+                transforms,
+                registry_owner,
+                registry_username,
+                registry_password,
+                mime_type,
+                retry_attempts,
+                retry_delay
+            ):
+                failed_mirrors += 1
             
             print()
     

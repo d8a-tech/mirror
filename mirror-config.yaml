@@ -15,6 +15,7 @@ files:
     destination: ghcr.io/{{GITHUB_REPOSITORY_OWNER}}/dbip-city-lite
     tags:
       - "2025-10"
+      - "latest"
     mime: application/vnd.dbip.database
 
 
