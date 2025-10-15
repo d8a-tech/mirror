@@ -1,0 +1,20 @@
+[project]
+name = "docker-mirror"
+version = "0.1.0"
+description = "Docker image mirroring tool"
+requires-python = ">=3.8"
+dependencies = [
+    "pyyaml>=6.0",
+    "requests>=2.31.0",
+]
+
+[project.scripts]
+mirror = "mirror.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["mirror"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
