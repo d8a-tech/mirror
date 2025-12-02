@@ -9,12 +9,12 @@ docker:
       - "3.9"
 
 files:
-  - source: https://download.db-ip.com/free/dbip-city-lite-2025-10.mmdb.gz
+  - source: https://download.db-ip.com/free/dbip-city-lite-2025-12.mmdb.gz
     transforms: 
      - type: "gunzip"
     destination: ghcr.io/{{GITHUB_REPOSITORY_OWNER}}/dbip-city-lite
     tags:
-      - "2025-10"
+      - "2025-12"
       - "latest"
     mime: application/vnd.dbip.database
 
